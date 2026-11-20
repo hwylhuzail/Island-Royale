@@ -1,634 +1,573 @@
-<!doctype html>
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>Island Royale — Open World</title>
+<title>Island Royale</title>
 <style>
 *{box-sizing:border-box}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#15232a;color:white;font:14px Arial}
+body{margin:0;overflow:hidden;background:#101820;font-family:Arial;color:white}
 canvas{display:block}
-#hud{position:fixed;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;pointer-events:none;gap:8px}
-.panel{background:#07131dcc;border:1px solid #ffffff38;border-radius:10px;padding:10px 13px;backdrop-filter:blur(7px);line-height:1.6}
-#map{position:fixed;right:12px;bottom:12px;width:145px;height:145px;border-radius:50%;border:2px solid #fff9;background:#07131d}
-#hint{position:fixed;bottom:15px;left:50%;transform:translateX(-50%);white-space:nowrap}
-#toast{position:fixed;top:90px;left:50%;transform:translateX(-50%);display:none}
-#menu{position:fixed;inset:0;z-index:5;display:grid;place-items:center;background:linear-gradient(140deg,#081723ee,#183b4cee);padding:15px}
-#card{max-width:550px;text-align:center;padding:28px}
-h1{font-size:clamp(34px,8vw,58px);letter-spacing:2px;color:#ffd166;margin:0 0 8px}
-p{color:#d3e1e9;line-height:1.6}
-button{border:0;border-radius:8px;padding:13px 20px;margin:5px;background:#f2ae43;color:#171717;font-weight:bold;font-size:15px;touch-action:manipulation}
-#start{cursor:pointer;min-height:54px}
-#mobile{display:none;position:fixed;inset:0;pointer-events:none}
-.pad,.acts{position:absolute;bottom:20px;pointer-events:none}
-.pad{left:12px;width:145px;height:145px}
-.acts{right:12px;width:160px;height:145px}
-.m{position:absolute;width:48px;height:48px;border-radius:50%;border:1px solid #fff9;background:#07131dcc;color:white;font-size:18px;pointer-events:auto;touch-action:none}
-#up{left:48px;top:0}
-#down{left:48px;bottom:0}
-#left{left:0;top:48px}
-#right{right:0;top:48px}
-#fire{right:0;bottom:0;background:#a42d2dcc}
+#hud{position:fixed;top:12px;left:12px;right:12px;display:flex;justify-content:space-between;pointer-events:none}
+.panel{background:#101c2add;border:1px solid #ffffff44;border-radius:12px;padding:12px;line-height:1.7}
+#menu{position:fixed;inset:0;background:#071522eF;display:grid;place-items:center;z-index:5;padding:20px}
+#menu>div{max-width:500px;text-align:center}
+h1{color:#ffd166;font-size:clamp(38px,9vw,65px)}
+button{border:0;border-radius:12px;padding:15px 23px;background:#ffb640;color:#171717;font-size:17px;font-weight:bold;touch-action:none}
+#controls{position:fixed;bottom:20px;left:15px;right:15px;display:none;pointer-events:none}
+.pad,.actions{position:absolute;bottom:0;pointer-events:none}
+.pad{left:0;width:150px;height:145px}
+.actions{right:0;width:150px;height:145px}
+.touch{position:absolute;width:48px;height:48px;border-radius:50%;background:#101c2ddd;border:1px solid #ffffff88;color:white;pointer-events:auto}
+#up{left:50px;top:0}#down{left:50px;bottom:0}
+#left{left:0;top:48px}#right{right:0;top:48px}
+#fire{right:0;bottom:0;background:#b52c35}
 #jump{right:55px;bottom:65px}
 #use{right:55px;bottom:0}
-@media(max-width:700px){
-#mobile{display:block}
-#map{width:110px;height:110px}
-#hint{bottom:175px;font-size:11px}
-#stats,#objective{font-size:11px}
-}
+#map{position:fixed;right:12px;bottom:180px;width:110px;height:110px;border-radius:50%;border:2px solid white}
+#message{position:fixed;top:90px;left:50%;transform:translateX(-50%);background:#101c2ddd;padding:10px;border-radius:8px;display:none}
+@media(max-width:700px){#controls{display:block}#map{bottom:180px;width:100px;height:100px}}
 </style>
 </head>
 <body>
-
 <div id="hud">
-<div id="stats" class="panel">
-HEALTH <b id="hp">100</b> · CASH $<b id="cash">500</b><br>
-WEAPON <b id="weapon">Pistol</b><br>
-TIME <b id="time">08:00</b>
+ <div class="panel">HEALTH: <b id="health">100</b><br>CASH: $<b id="cash">500</b><br>WEAPON: <b id="weapon">Pistol</b></div>
+ <div class="panel">ISLAND CITY<br><span id="mission">Explore the island</span></div>
 </div>
-<div id="objective" class="panel">
-ISLAND CITY<br>
-<b id="mission">Explore the island</b>
-</div>
-</div>
+<canvas id="map" width="200" height="200"></canvas>
+<div id="message"></div>
 
-<canvas id="map" width="220" height="220"></canvas>
-<div id="hint" class="panel">WASD move · Mouse look · Click shoot · E enter/exit car · Shift sprint · Space jump · 1/2/3 weapons</div>
-<div id="toast" class="panel"></div>
-
-<div id="mobile">
-<div class="pad">
-<button class="m" id="up">▲</button>
-<button class="m" id="down">▼</button>
-<button class="m" id="left">◀</button>
-<button class="m" id="right">▶</button>
-</div>
-<div class="acts">
-<button class="m" id="fire">●</button>
-<button class="m" id="jump">↟</button>
-<button class="m" id="use">E</button>
-</div>
+<div id="controls">
+ <div class="pad">
+  <button class="touch" id="up">▲</button>
+  <button class="touch" id="down">▼</button>
+  <button class="touch" id="left">◀</button>
+  <button class="touch" id="right">▶</button>
+ </div>
+ <div class="actions">
+  <button class="touch" id="fire">●</button>
+  <button class="touch" id="jump">↟</button>
+  <button class="touch" id="use">E</button>
+ </div>
 </div>
 
 <div id="menu">
-<div id="card" class="panel">
-<h1>ISLAND ROYALE</h1>
-<p>A complete single-player 3D open-world island prototype. Explore a city, walk among residents, drive cars, complete a mission and defend yourself.</p>
-<button id="start" type="button">ENTER OPEN WORLD</button>
-<p>Desktop: WASD, mouse, click, E, Shift, Space, 1–3.<br>
-Mobile: use the touch controls and drag the screen to look around.</p>
-</div>
+ <div>
+  <h1>ISLAND ROYALE</h1>
+  <p>Explore a large island city. Walk among animated 3D characters, drive vehicles and complete missions.</p>
+  <button id="start">ENTER OPEN WORLD</button>
+  <p>Desktop: WASD to move, mouse to look, click to shoot, E to interact, 1–3 weapons.</p>
+  <p>Mobile: use the controls and drag the screen to look around.</p>
+ </div>
 </div>
 
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
 
-const $=s=>document.getElementById(s);
+const $=id=>document.getElementById(id);
 const scene=new THREE.Scene();
-scene.background=new THREE.Color(0x91b9d0);
-scene.fog=new THREE.Fog(0x91b9d0,100,430);
+scene.background=new THREE.Color(0x9bbfd2);
+scene.fog=new THREE.Fog(0x9bbfd2,130,650);
 
-const camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,.1,900);
-const renderer=new THREE.WebGLRenderer({antialias:innerWidth>700});
+const camera=new THREE.PerspectiveCamera(65,innerWidth/innerHeight,.1,1000);
+const renderer=new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(innerWidth,innerHeight);
 renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));
-renderer.shadowMap.enabled=innerWidth>700;
+renderer.shadowMap.enabled=true;
 renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.15;
 document.body.appendChild(renderer.domElement);
 
-scene.add(new THREE.HemisphereLight(0xc9e7ff,0x4a5541,1.8));
-const sun=new THREE.DirectionalLight(0xffedce,2.3);
-sun.position.set(-100,150,80);
+scene.add(new THREE.HemisphereLight(0xc5e5ff,0x46513a,2));
+const sun=new THREE.DirectionalLight(0xffe1b3,3);
+sun.position.set(-100,180,80);
 sun.castShadow=true;
-sun.shadow.mapSize.set(1024,1024);
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-180;
+sun.shadow.camera.right=180;
+sun.shadow.camera.top=180;
+sun.shadow.camera.bottom=-180;
 scene.add(sun);
 
-const M=(c,r=.8,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
-const grass=M(0x58784b);
-const roadmat=M(0x30363b);
-const side=M(0x9a9b91);
-const glass=M(0x6d9eae,.2,.2);
-const trunk=M(0x59412c);
-const leaf=M(0x3e7045);
+const mat=(color,rough=.8,metal=0)=>new THREE.MeshStandardMaterial({
+ color,roughness:rough,metalness:metal
+});
+const grass=mat(0x526f48);
+const asphalt=mat(0x292f34);
+const concrete=mat(0xaaa99d);
+const glass=mat(0x477c91,.18,.35);
 
-function cube(p,x,y,z,w,h,d,ma){
-let o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),ma);
-o.position.set(x,y,z);
-o.castShadow=true;
-o.receiveShadow=true;
-p.add(o);
-return o;
+function box(parent,x,y,z,w,h,d,material){
+ const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);
+ mesh.position.set(x,y,z);
+ mesh.castShadow=true;
+ mesh.receiveShadow=true;
+ parent.add(mesh);
+ return mesh;
 }
 
-function plane(w,d,ma,y=-.1){
-let o=new THREE.Mesh(new THREE.PlaneGeometry(w,d),ma);
-o.rotation.x=-Math.PI/2;
-o.position.y=y;
-scene.add(o);
+function ground(w,d,material,y=0){
+ const m=new THREE.Mesh(new THREE.PlaneGeometry(w,d),material);
+ m.rotation.x=-Math.PI/2;
+ m.position.y=y;
+ m.receiveShadow=true;
+ scene.add(m);
 }
-
-plane(900,900,grass);
-plane(1000,1000,M(0x287b91,.3),-1.4);
+ground(1200,1200,grass);
+ground(1300,1300,mat(0x1e6578),-1.5);
 
 function road(x,z,w,d){
-cube(scene,x,.01,z,w,.05,d,roadmat);
-let horizontal=w>d;
-for(let i=-Math.floor((horizontal?w:d)/18);i<=Math.floor((horizontal?w:d)/18);i++){
-cube(scene,x+(horizontal?i*9:0),.05,z+(horizontal?0:i*9),horizontal?1:.15,.025,horizontal?.15:1,M(0xe8dcae));
+ box(scene,x,.03,z,w,.12,d,asphalt);
+ const horizontal=w>d;
+ const length=horizontal?w:d;
+ for(let i=-Math.floor(length/18);i<=Math.floor(length/18);i++){
+  box(scene,x+(horizontal?i*18:0),.105,z+(horizontal?0:i*18),
+      horizontal?4:.18,.025,horizontal?.18:4,mat(0xe8d9a7));
+ }
+ box(scene,x+(horizontal?0:w/2+.8),.1,z+(horizontal?d/2+.8:0),
+     horizontal?w:1,.12,horizontal?1:d,concrete);
+ box(scene,x-(horizontal?0:w/2+.8),.1,z-(horizontal?d/2+.8:0),
+     horizontal?w:1,.12,horizontal?1:d,concrete);
 }
+road(0,0,500,17);
+road(0,0,17,500);
+road(0,120,380,14);
+road(0,-120,380,14);
+road(120,0,14,380);
+road(-120,0,14,380);
+
+function building(x,z,w,d,h,index){
+ const group=new THREE.Group();
+ group.position.set(x,0,z);
+ scene.add(group);
+ const palettes=[0xc5bda9,0xaebbc0,0xb9a58d,0x858f98,0xd1c9b9];
+ box(group,0,h/2,0,w,h,d,mat(palettes[index%palettes.length]));
+ box(group,0,h+.35,0,w+.8,.6,d+.8,mat(0x3b454c));
+ const floors=Math.floor(h/3.2);
+ const cols=Math.max(2,Math.floor(w/3));
+ for(let f=0;f<floors;f++){
+  for(let c=0;c<cols;c++){
+   const xx=-w/2+(c+.5)*w/cols;
+   const yy=1.5+f*3.1;
+   if(yy<h-.5){
+    box(group,xx,yy,d/2+.04,w/cols*.65,1.65,.08,glass);
+    box(group,xx,yy-.9,d/2+.1,w/cols*.72,.12,.15,mat(0x485057));
+   }
+  }
+ }
+ // Shopfront
+ if(h<15){
+  box(group,0,1.5,d/2+.12,w*.7,2.8,.1,glass);
+  box(group,3,3,d/2+.2,w*.35,.45,.15,mat(0xd2a64b));
+ }
 }
 
-road(0,0,430,15);
-road(0,0,15,430);
-road(0,105,340,12);
-road(0,-105,340,12);
-road(105,0,12,340);
-road(-105,0,12,340);
-
-for(let q of [[0,9,430,2],[0,-9,430,2],[9,0,2,430],[-9,0,2,430]]){
-cube(scene,q[0],.08,q[1],q[2],.15,q[3],side);
+let buildingCount=0;
+for(let x=-220;x<=220;x+=42){
+ for(let z=-220;z<=220;z+=42){
+  if(Math.abs(x)<32||Math.abs(z)<32)continue;
+  building(x,z,20+Math.random()*12,20+Math.random()*12,
+   10+Math.random()*45,buildingCount++);
+ }
 }
-
-function building(x,z,w,d,h,i){
-let g=new THREE.Group();
-g.position.set(x,0,z);
-scene.add(g);
-let colors=[0xc4b9a2,0xb9c2c4,0xd1c5ad,0x929fa4,0xc9c9bd];
-cube(g,0,h/2,0,w,h,d,M(colors[i%5]));
-cube(g,0,h+.2,0,w+.4,.35,d+.4,M(0x454c50));
-let floors=Math.floor(h/3);
-let cols=Math.max(2,Math.floor(w/3));
-for(let f=0;f<floors;f++){
-for(let c=0;c<cols;c++){
-let xx=-w/2+(c+.5)*w/cols;
-let yy=1.3+f*3;
-if(yy<h-.5){
-cube(g,xx,yy,d/2+.02,w/cols*.62,1.35,.04,glass);
-cube(g,xx,yy-.78,d/2+.04,w/cols*.7,.1,.1,M(0x454c50));
-}
-}
-}
-}
-
-let n=0;
-for(let x=-190;x<=190;x+=38){
-for(let z=-190;z<=190;z+=38){
-if(Math.abs(x)<28||Math.abs(z)<28||Math.random()<.16)continue;
-building(x,z,17+Math.random()*9,17+Math.random()*9,9+Math.random()*30,n++);
-}
-}
-building(42,42,32,28,42,2);
-building(-42,42,27,30,31,1);
-
-function cylinder(p,x,y,z,a,b,h,ma){
-let o=new THREE.Mesh(new THREE.CylinderGeometry(a,b,h,9),ma);
-o.position.set(x,y,z);
-p.add(o);
-return o;
-}
+building(48,48,38,35,55,3);
+building(-48,48,30,35,35,1);
 
 function tree(x,z,s=1){
-cylinder(scene,x,1.4*s,z,.3*s,.4*s,2.8*s,trunk);
-let t=new THREE.Mesh(new THREE.SphereGeometry(1.7*s,9,7),leaf);
-t.position.set(x,3.5*s,z);
-t.castShadow=true;
-scene.add(t);
+ const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.25*s,.4*s,3*s,10),mat(0x59402a));
+ trunk.position.set(x,1.5*s,z);
+ trunk.castShadow=true;
+ scene.add(trunk);
+ const crown=new THREE.Mesh(new THREE.SphereGeometry(2*s,16,12),mat(0x326a3c));
+ crown.position.set(x,4*s,z);
+ crown.castShadow=true;
+ scene.add(crown);
+}
+for(let i=0;i<180;i++){
+ const a=Math.random()*Math.PI*2;
+ const r=130+Math.random()*330;
+ tree(Math.cos(a)*r,Math.sin(a)*r,.7+Math.random()*.8);
 }
 
-for(let i=0;i<100;i++){
-let a=Math.random()*6.28;
-let r=130+Math.random()*105;
-tree(Math.cos(a)*r,Math.sin(a)*r,.7+Math.random()*.6);
+// Player and real animated character asset
+const player=new THREE.Group();
+scene.add(player);
+player.position.set(0,0,24);
+let playerModel=null;
+let playerMixer=null;
+let actions={};
+let currentAction=null;
+const loader=new GLTFLoader();
+const humanURL='https://threejs.org/examples/models/gltf/Soldier.glb';
+
+function loadHuman(){
+ return new Promise((resolve,reject)=>{
+  loader.load(humanURL,gltf=>{
+   const model=gltf.scene;
+   model.scale.setScalar(1.15);
+   model.traverse(o=>{
+    if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}
+   });
+   resolve({model,animations:gltf.animations});
+  },undefined,reject);
+ });
 }
 
-function person(shirt=0x385d88,pants=0x30343b){
-let g=new THREE.Group();
-let skin=M(0x9b6849);
-let cloth=M(shirt);
-let tr=M(pants);
-cube(g,0,1.4,0,.58,.75,.32,cloth);
-let h=new THREE.Mesh(new THREE.SphereGeometry(.22,12,9),skin);
-h.position.y=2;
-g.add(h);
-let legs=[],arms=[];
-for(let s of [-1,1]){
-legs.push(cube(g,s*.16,.52,0,.22,.7,.23,tr));
-arms.push(cube(g,s*.39,1.4,0,.17,.6,.18,skin));
-cube(g,s*.16,.14,.07,.24,.16,.38,M(0x17191b));
-}
-g.userData={legs,arms,phase:Math.random()*6};
-return g;
+function useAnimation(name){
+ if(!actions[name]||currentAction===actions[name])return;
+ if(currentAction)currentAction.fadeOut(.2);
+ currentAction=actions[name];
+ currentAction.reset().fadeIn(.2).play();
 }
 
-const player={
-g:new THREE.Group(),yaw:0,pitch:0,hp:100,cash:500,
-weapon:0,car:null,vy:0,cd:0,mission:0
-};
-const avatar=person(0x284f83,0x252a33);
-player.g.add(avatar);
-scene.add(player.g);
-player.g.position.set(0,0,18);
+function attachHuman(target,animations,isPlayer=false){
+ const model=target;
+ const mixer=new THREE.AnimationMixer(model);
+ const clips=animations;
+ const map={};
+ clips.forEach(clip=>{
+  const key=clip.name.toLowerCase();
+  map[key]=mixer.clipAction(clip);
+ });
+ return {model,mixer,map};
+}
 
-let civilians=[],enemies=[],cars=[],tracers=[];
-let started=false,day=8,locked=false,touchLook=null;
+const pedestrians=[];
+const enemies=[];
+const cars=[];
 const keys={};
+let started=false;
+let yaw=0,pitch=0,locked=false;
+let playerHealth=100,cash=500,weapon=0;
+let mission=0;
+let lastShot=0;
+let carMode=null;
+let touchPoint=null;
+</script>
+</body>
+</html>
 
-for(let i=0;i<32;i++){
-let p=person([0x7e4938,0x355d78,0x8a7a42,0x4f7655,0x5e4b70][i%5],0x303943);
-p.position.set((Math.random()-.5)*260,0,(Math.random()-.5)*260);
-p.userData.dir=Math.random()*6.28;
-p.userData.speed=.4+Math.random()*.5;
-scene.add(p);
-civilians.push(p);
-}
+<!-- PASTE THIS INSIDE THE SAME FILE.
+     Remove Part 1's final </script></body></html> first.
+     Then paste this part after the Part 1 JavaScript. -->
 
-function car(color){
-let g=new THREE.Group();
-let paint=M(color,.3,.4);
-let wheel=M(0x151719);
-cube(g,0,.65,0,2.2,.65,4,paint);
-cube(g,0,1.2,-.2,1.75,.7,2,paint);
-cube(g,0,1.25,.85,1.65,.5,.04,glass);
-for(let x of [-1.1,1.1]){
-for(let z of [-1.3,1.3]){
-let w=new THREE.Mesh(new THREE.CylinderGeometry(.36,.36,.2,12),wheel);
-w.rotation.z=Math.PI/2;
-w.position.set(x,.35,z);
-g.add(w);
-}
-}
-scene.add(g);
-g.userData={speed:0,traffic:true};
-return g;
+<script type="module">
+// This continuation is shown separately for easier copying.
+// IMPORTANT: It must be inside the SAME module script as Part 1.
+// Remove the second <script type="module"> line above when combining.
+
+let humanData=null;
+try{
+ humanData=await loadHuman();
+}catch(error){
+ console.error('3D character model could not load:',error);
+ say('Character model unavailable. Check your internet connection.');
 }
 
-for(let i=0;i<12;i++){
-let c=car([0x9d3430,0x315c87,0xc6c6bd,0x34383d][i%4]);
-c.position.set(-150+i*27,.05,i%2?15:-15);
-c.rotation.y=i%2?Math.PI:0;
-cars.push(c);
-}
-for(let i=0;i<8;i++){
-let g=new THREE.Group();
-let p=person(0x60463a,0x34302c);
-g.add(p);
-g.position.set((Math.random()-.5)*210,0,(Math.random()-.5)*210);
-scene.add(g);
-enemies.push({g,hp:100,alive:true,cd:1});
+function say(message){
+ const el=$('message');
+ el.textContent=message;
+ el.style.display='block';
+ clearTimeout(say.timer);
+ say.timer=setTimeout(()=>el.style.display='none',2500);
 }
 
-function say(t){
-$('toast').textContent=t;
-$('toast').style.display='block';
-clearTimeout(say.timer);
-say.timer=setTimeout(()=>$('toast').style.display='none',2200);
+function addCharacter(x,z,isEnemy=false){
+ const holder=new THREE.Group();
+ holder.position.set(x,0,z);
+ scene.add(holder);
+ if(humanData){
+  const model=humanData.model.clone(true);
+  holder.add(model);
+  const mixer=new THREE.AnimationMixer(model);
+  const clips=humanData.animations;
+  const idle=clips.find(c=>c.name.toLowerCase().includes('idle'))||clips[0];
+  const walk=clips.find(c=>c.name.toLowerCase().includes('walk'))||clips[0];
+  const run=clips.find(c=>c.name.toLowerCase().includes('run'))||walk;
+  const actions={
+   idle:mixer.clipAction(idle),
+   walk:mixer.clipAction(walk),
+   run:mixer.clipAction(run)
+  };
+  actions.idle.play();
+  const character={holder,mixer,actions,action:'idle',enemy:isEnemy,
+   health:100,alive:true,dir:Math.random()*6.28,
+   speed:.5+Math.random()*.8,attack:1};
+  (isEnemy?enemies:pedestrians).push(character);
+  return character;
+ }
+ const fallback=new THREE.Mesh(
+  new THREE.CapsuleGeometry(.45,1.2,5,10),
+  new THREE.MeshStandardMaterial({color:isEnemy?0x9d3434:0x386c9b})
+ );
+ fallback.position.y=1;
+ holder.add(fallback);
+ const character={holder,mixer:null,actions:null,action:'idle',
+  enemy:isEnemy,health:100,alive:true,dir:Math.random()*6.28,
+  speed:.5+Math.random()*.8,attack:1};
+ (isEnemy?enemies:pedestrians).push(character);
+ return character;
 }
 
-function hud(){
-$('hp').textContent=Math.max(0,Math.round(player.hp));
-$('cash').textContent=player.cash;
-$('weapon').textContent=['Pistol','Rifle','Shotgun'][player.weapon];
-$('time').textContent=String(Math.floor(day)%24).padStart(2,'0')+':'+String(Math.floor(day%1*60)).padStart(2,'0');
-$('mission').textContent=player.mission===0?'Visit the golden marker':player.mission===1?'Eliminate hostile guards':'Mission complete — free roam';
+function animateCharacter(c,state,dt){
+ if(c.mixer)c.mixer.update(dt);
+ if(!c.actions)return;
+ if(c.action===state)return;
+ if(c.actions[c.action])c.actions[c.action].fadeOut(.2);
+ c.action=state;
+ c.actions[state].reset().fadeIn(.2).play();
 }
 
-// MOBILE-FRIENDLY START BUTTON
+for(let i=0;i<45;i++){
+ let a=Math.random()*Math.PI*2,r=30+Math.random()*200;
+ addCharacter(Math.cos(a)*r,Math.sin(a)*r,false);
+}
+for(let i=0;i<10;i++){
+ let a=Math.random()*Math.PI*2,r=40+Math.random()*100;
+ addCharacter(Math.cos(a)*r,Math.sin(a)*r,true);
+}
+
+function makeCar(color,x,z){
+ const g=new THREE.Group();
+ const paint=mat(color,.3,.4);
+ box(g,0,.7,0,2.2,.8,4.4,paint);
+ box(g,0,1.35,-.25,1.8,.7,2.2,glass);
+ for(const sx of [-1.15,1.15]){
+  for(const sz of [-1.4,1.4]){
+   const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.4,.4,.25,16),mat(0x141414));
+   wheel.rotation.z=Math.PI/2;
+   wheel.position.set(sx,.4,sz);
+   g.add(wheel);
+  }
+ }
+ g.position.set(x,0,z);
+ scene.add(g);
+ cars.push(g);
+}
+for(let i=0;i<18;i++){
+ makeCar([0xb52c2c,0x244e86,0xc6c6c6,0x30363c][i%4],
+ -170+i*20,i%2?15:-15);
+}
+
+function switchAnimation(c,state,dt){
+ animateCharacter(c,state,dt);
+}
 function startGame(e){
-if(e)e.preventDefault();
-if(started)return;
-started=true;
-$('menu').style.display='none';
-if(innerWidth>700){
-renderer.domElement.requestPointerLock?.();
+ if(e)e.preventDefault();
+ if(started)return;
+ started=true;
+ $('menu').style.display='none';
+ say('Welcome to Island City');
+ if(innerWidth>700)renderer.domElement.requestPointerLock?.();
 }
-say('Welcome to Island City');
-}
-
 $('start').addEventListener('click',startGame);
 $('start').addEventListener('pointerup',startGame);
 
 addEventListener('keydown',e=>{
-keys[e.code]=true;
-if(e.code==='KeyE')interact();
-if(e.code==='Space')player.vy=7;
-if(e.code.startsWith('Digit')){
-player.weapon=Math.max(0,Math.min(2,Number(e.code.slice(5))-1));
-hud();
-}
+ keys[e.code]=true;
+ if(e.code==='KeyE')interact();
+ if(e.code==='Digit1')weapon=0;
+ if(e.code==='Digit2')weapon=1;
+ if(e.code==='Digit3')weapon=2;
+ $('weapon').textContent=['Pistol','Rifle','Shotgun'][weapon];
+ if(e.code==='Space'&&player.position.y===0)player.userData.vy=7;
 });
-
 addEventListener('keyup',e=>keys[e.code]=false);
 
 document.addEventListener('pointerlockchange',()=>{
-locked=document.pointerLockElement===renderer.domElement;
+ locked=document.pointerLockElement===renderer.domElement;
 });
-
 document.addEventListener('mousemove',e=>{
-if(locked){
-player.yaw-=e.movementX*.002;
-player.pitch=THREE.MathUtils.clamp(player.pitch-e.movementY*.0018,-.6,.5);
-}
+ if(locked){yaw-=e.movementX*.002;pitch=THREE.MathUtils.clamp(pitch-e.movementY*.002,-.5,.5);}
 });
-
 renderer.domElement.addEventListener('click',()=>{
-if(started&&!locked&&innerWidth>700){
-renderer.domElement.requestPointerLock?.();
-}
+ if(started&&innerWidth>700&&!locked)renderer.domElement.requestPointerLock?.();
 });
 
 function interact(){
-if(player.car){
-player.g.position.copy(player.car.position).add(new THREE.Vector3(2,0,0));
-player.car=null;
-say('Exited vehicle');
-return;
-}
-let c=cars.find(v=>v.position.distanceTo(player.g.position)<5);
-if(c){
-player.car=c;
-say('Driving — WASD to steer');
-return;
-}
-if(player.mission===0&&player.g.position.distanceTo(new THREE.Vector3(42,0,42))<13){
-player.mission=1;
-say('Mission started: eliminate hostile guards');
-}
+ if(carMode){
+  player.position.copy(carMode.position).add(new THREE.Vector3(3,0,0));
+  carMode=null;
+  say('Exited car');
+  return;
+ }
+ const nearby=cars.find(c=>c.position.distanceTo(player.position)<6);
+ if(nearby){carMode=nearby;say('Vehicle entered');return;}
+ if(mission===0&&player.position.distanceTo(new THREE.Vector3(48,0,48))<18){
+  mission=1;
+  say('Mission started: defeat the hostile guards');
+ }
 }
 
 function shoot(){
-if(!started||player.cd>0)return;
-player.cd=[.36,.13,.7][player.weapon];
-let dir=new THREE.Vector3();
-camera.getWorldDirection(dir);
-let ray=new THREE.Raycaster(camera.position,dir,0,[65,100,35][player.weapon]);
-let objs=[];
-enemies.filter(e=>e.alive).forEach(e=>{
-e.g.traverse(o=>{if(o.isMesh)objs.push(o)});
-});
-scene.updateMatrixWorld(true);
-let hit=ray.intersectObjects(objs)[0];
-
-if(hit){
-let e=enemies.find(e=>{
-let yes=false;
-e.g.traverse(o=>{if(o===hit.object)yes=true});
-return yes;
-});
-if(e){
-e.hp-=[26,18,48][player.weapon];
-if(e.hp<=0){
-e.alive=false;
-scene.remove(e.g);
-player.cash+=100;
-say('Hostile eliminated +$100');
-if(enemies.filter(e=>e.alive).length===0){
-player.mission=2;
-player.cash+=500;
-say('Mission complete +$500');
+ if(!started||performance.now()-lastShot<250)return;
+ lastShot=performance.now();
+ const direction=new THREE.Vector3();
+ camera.getWorldDirection(direction);
+ const ray=new THREE.Raycaster(camera.position,direction,0,90);
+ const targets=[];
+ enemies.filter(e=>e.alive).forEach(e=>{
+  e.holder.traverse(o=>{if(o.isMesh)targets.push(o);});
+ });
+ scene.updateMatrixWorld(true);
+ const hit=ray.intersectObjects(targets)[0];
+ if(hit){
+  const enemy=enemies.find(e=>{
+   let found=false;
+   e.holder.traverse(o=>{if(o===hit.object)found=true;});
+   return found;
+  });
+  if(enemy){
+   enemy.health-=weapon===2?55:weapon===1?30:20;
+   if(enemy.health<=0){
+    enemy.alive=false;
+    scene.remove(enemy.holder);
+    cash+=100;
+    $('cash').textContent=cash;
+    say('Enemy defeated +$100');
+    if(enemies.every(e=>!e.alive)){
+     mission=2;cash+=500;
+     say('Mission completed +$500');
+    }
+   }
+  }
+ }
 }
-}
-}
-}
+renderer.domElement.addEventListener('mousedown',e=>{if(e.button===0&&locked)shoot();});
+$('fire').addEventListener('pointerdown',shoot);
 
-let end=hit?hit.point:camera.position.clone().addScaledVector(dir,50);
-let line=new THREE.Line(
-new THREE.BufferGeometry().setFromPoints([camera.position,end]),
-new THREE.LineBasicMaterial({color:0xffe6a0})
-);
-scene.add(line);
-tracers.push({line,t:.07});
+function hold(id,key){
+ const el=$(id);
+ el.addEventListener('pointerdown',e=>{
+  e.preventDefault();keys[key]=true;el.setPointerCapture(e.pointerId);
+ });
+ ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>{
+  el.addEventListener(ev,()=>keys[key]=false);
+ });
 }
-
-renderer.domElement.addEventListener('mousedown',e=>{
-if(e.button===0&&locked)shoot();
-});
-
-function hold(id,k){
-let el=$(id);
-el.onpointerdown=e=>{
-e.preventDefault();
-keys[k]=true;
-el.setPointerCapture(e.pointerId);
-};
-['pointerup','pointercancel','lostpointercapture'].forEach(v=>{
-el.addEventListener(v,()=>keys[k]=false);
-});
-}
-
-hold('up','KeyW');
-hold('down','KeyS');
-hold('left','KeyA');
-hold('right','KeyD');
-
-$('fire').onpointerdown=shoot;
-$('jump').onpointerdown=()=>player.vy=7;
-$('use').onpointerdown=interact;
+hold('up','KeyW');hold('down','KeyS');
+hold('left','KeyA');hold('right','KeyD');
+$('jump').addEventListener('pointerdown',()=>player.userData.vy=7);
+$('use').addEventListener('pointerdown',interact);
 
 renderer.domElement.addEventListener('touchstart',e=>{
-if(e.touches[0].clientX>innerWidth*.35){
-touchLook={
-x:e.touches[0].clientX,
-y:e.touches[0].clientY,
-id:e.touches[0].identifier
-};
-}
+ const t=e.touches[0];
+ if(t&&t.clientX>innerWidth*.35)touchPoint={x:t.clientX,y:t.clientY};
 },{passive:true});
-
 renderer.domElement.addEventListener('touchmove',e=>{
-if(!touchLook)return;
-for(let t of e.touches){
-if(t.identifier===touchLook.id){
-player.yaw-=(t.clientX-touchLook.x)*.006;
-player.pitch=THREE.MathUtils.clamp(player.pitch-(t.clientY-touchLook.y)*.004,-.6,.5);
-touchLook.x=t.clientX;
-touchLook.y=t.clientY;
-}
-}
+ if(!touchPoint)return;
+ const t=e.touches[0];if(!t)return;
+ yaw-=(t.clientX-touchPoint.x)*.006;
+ pitch=THREE.MathUtils.clamp(pitch-(t.clientY-touchPoint.y)*.004,-.5,.5);
+ touchPoint={x:t.clientX,y:t.clientY};
 },{passive:true});
-
-renderer.domElement.addEventListener('touchend',()=>touchLook=null);
+renderer.domElement.addEventListener('touchend',()=>touchPoint=null);
 
 const clock=new THREE.Clock();
-const fwd=new THREE.Vector3();
-const right=new THREE.Vector3();
-const move=new THREE.Vector3();
+const movement=new THREE.Vector3();
+const direction=new THREE.Vector3();
 
-function cameraUpdate(dt){
-let target=player.g.position.clone().add(new THREE.Vector3(0,2,0));
-let dist=player.car?9:7;
-let off=new THREE.Vector3(
-Math.sin(player.yaw)*dist,
-3+player.pitch*3,
-Math.cos(player.yaw)*dist
-);
-camera.position.lerp(target.clone().add(off),1-Math.exp(-5*dt));
-camera.lookAt(target.clone().add(new THREE.Vector3(
--Math.sin(player.yaw)*2,
-player.pitch*2,
--Math.cos(player.yaw)*2
-)));
+function updateCamera(dt){
+ const target=player.position.clone().add(new THREE.Vector3(0,2.1,0));
+ const distance=carMode?10:7;
+ const offset=new THREE.Vector3(
+  Math.sin(yaw)*distance,3+pitch*3,Math.cos(yaw)*distance
+ );
+ camera.position.lerp(target.clone().add(offset),1-Math.exp(-5*dt));
+ camera.lookAt(target.clone().add(new THREE.Vector3(
+  -Math.sin(yaw)*2,pitch*2,-Math.cos(yaw)*2
+ )));
 }
 
-function map(){
-let c=$('map').getContext('2d');
-c.clearRect(0,0,220,220);
-c.fillStyle='#17302f';
-c.fillRect(0,0,220,220);
-
-let px=x=>(x+250)/500*220;
-let pz=z=>(z+250)/500*220;
-
-c.strokeStyle='#9da49a';
-c.lineWidth=6;
-
-for(let [x,z,w,d] of [
-[0,0,430,15],[0,0,15,430],
-[0,105,340,12],[0,-105,340,12],
-[105,0,12,340],[-105,0,12,340]
-]){
-c.beginPath();
-c.moveTo(px(x-w/2),pz(z-d/2));
-c.lineTo(px(x+w/2),pz(z+d/2));
-c.stroke();
-}
-
-c.fillStyle='#ffd166';
-c.beginPath();
-c.arc(px(42),pz(42),5,0,7);
-c.fill();
-
-enemies.filter(e=>e.alive).forEach(e=>{
-c.fillStyle='#f44';
-c.fillRect(px(e.g.position.x)-2,pz(e.g.position.z)-2,4,4);
-});
-
-c.fillStyle='white';
-c.beginPath();
-c.arc(px(player.g.position.x),pz(player.g.position.z),5,0,7);
-c.fill();
+function updateMap(){
+ const c=$('map').getContext('2d');
+ c.clearRect(0,0,200,200);
+ c.fillStyle='#263c37';c.fillRect(0,0,200,200);
+ const px=x=>(x+300)/600*200,pz=z=>(z+300)/600*200;
+ c.strokeStyle='#aaa';c.lineWidth=5;
+ [[0,0,500,17],[0,0,17,500],[0,120,380,14],[0,-120,380,14],[120,0,14,380],[-120,0,14,380]].forEach(([x,z,w,d])=>{
+  c.beginPath();c.moveTo(px(x-w/2),pz(z-d/2));c.lineTo(px(x+w/2),pz(z+d/2));c.stroke();
+ });
+ c.fillStyle='#ffe06a';c.beginPath();c.arc(px(48),pz(48),5,0,7);c.fill();
+ c.fillStyle='#f44';
+ enemies.filter(e=>e.alive).forEach(e=>{c.fillRect(px(e.holder.position.x)-2,pz(e.holder.position.z)-2,4,4);});
+ c.fillStyle='white';c.beginPath();c.arc(px(player.position.x),pz(player.position.z),5,0,7);c.fill();
 }
 
 function animate(){
-requestAnimationFrame(animate);
-let dt=Math.min(clock.getDelta(),.04);
-let t=clock.elapsedTime;
-
-if(started){
-player.cd=Math.max(0,player.cd-dt);
-
-let f=(keys.KeyW?1:0)-(keys.KeyS?1:0);
-let s=(keys.KeyD?1:0)-(keys.KeyA?1:0);
-
-if(player.car){
-let c=player.car;
-c.userData.speed=THREE.MathUtils.damp(c.userData.speed,f*20,2,dt);
-c.rotation.y+=s*dt*Math.abs(c.userData.speed)*.07;
-c.position.x+=Math.sin(c.rotation.y)*c.userData.speed*dt;
-c.position.z+=Math.cos(c.rotation.y)*c.userData.speed*dt;
-player.g.position.copy(c.position);
-}else{
-fwd.set(-Math.sin(player.yaw),0,-Math.cos(player.yaw));
-right.set(Math.cos(player.yaw),0,-Math.sin(player.yaw));
-move.set(0,0,0).addScaledVector(fwd,f).addScaledVector(right,s);
-
-if(move.lengthSq()){
-move.normalize().multiplyScalar((keys.ShiftLeft?9:5)*dt);
+ requestAnimationFrame(animate);
+ const dt=Math.min(clock.getDelta(),.04);
+ if(started){
+  const forward=(keys.KeyW?1:0)-(keys.KeyS?1:0);
+  const side=(keys.KeyD?1:0)-(keys.KeyA?1:0);
+  if(carMode){
+   carMode.position.x+=Math.sin(yaw)*forward*12*dt;
+   carMode.position.z+=Math.cos(yaw)*forward*12*dt;
+   carMode.rotation.y=yaw+Math.PI;
+   player.position.copy(carMode.position);
+  }else{
+   direction.set(-Math.sin(yaw),0,-Math.cos(yaw));
+   movement.set(Math.cos(yaw),0,-Math.sin(yaw));
+   const velocity=new THREE.Vector3().addScaledVector(direction,forward).addScaledVector(movement,side);
+   if(velocity.lengthSq())velocity.normalize().multiplyScalar((keys.ShiftLeft?9:5)*dt);
+   player.position.add(velocity);
+   player.rotation.y=yaw;
+   player.userData.vy=(player.userData.vy||0)-18*dt;
+   player.position.y+=player.userData.vy*dt;
+   if(player.position.y<0){player.position.y=0;player.userData.vy=0;}
+   if(playerModel){
+    playerModel.position.copy(player.position);
+    playerModel.rotation.y=player.rotation.y;
+   }
+   if(playerMixer)playerMixer.update(dt);
+  }
+  pedestrians.forEach(c=>{
+   c.holder.position.x+=Math.sin(c.dir)*c.speed*dt;
+   c.holder.position.z+=Math.cos(c.dir)*c.speed*dt;
+   c.dir+=(Math.random()-.5)*dt*.3;
+   switchAnimation(c,'walk',dt);
+  });
+  enemies.forEach(e=>{
+   if(!e.alive)return;
+   const delta=player.position.clone().sub(e.holder.position);
+   const distance=delta.length();
+   if(distance<35){
+    e.holder.lookAt(player.position);
+    if(distance>4){
+     delta.y=0;delta.normalize();
+     e.holder.position.addScaledVector(delta,dt*2);
+     switchAnimation(e,'run',dt);
+    }else{
+     e.attack-=dt;
+     if(e.attack<=0){
+      playerHealth-=4;e.attack=1;
+     }
+    }
+   }else switchAnimation(e,'idle',dt);
+  });
+  updateCamera(dt);
+  $('health').textContent=Math.max(0,Math.round(playerHealth));
+  $('cash').textContent=cash;
+  $('mission').textContent=mission===0?'Visit the golden marker':mission===1?'Defeat hostile guards':'Mission completed';
+  updateMap();
+  if(playerHealth<=0){
+   started=false;
+   $('menu').style.display='grid';
+   say('You were defeated. Refresh to restart.');
+  }
+ }
+ renderer.render(scene,camera);
 }
-
-player.g.position.add(move);
-player.g.rotation.y=player.yaw;
-player.vy-=18*dt;
-player.g.position.y+=player.vy*dt;
-
-if(player.g.position.y<0){
-player.g.position.y=0;
-player.vy=0;
-}
-
-avatar.userData.legs.forEach((l,i)=>{
-l.rotation.x=move.lengthSq()?Math.sin(t*10+i*Math.PI)*.5:0;
-});
-}
-
-cameraUpdate(dt);
-
-civilians.forEach(p=>{
-p.userData.dir+=(Math.random()-.5)*dt*.15;
-p.position.x+=Math.sin(p.userData.dir)*p.userData.speed*dt;
-p.position.z+=Math.cos(p.userData.dir)*p.userData.speed*dt;
-p.userData.legs.forEach((l,i)=>{
-l.rotation.x=Math.sin(t*4+i*Math.PI)*.3;
-});
-});
-
-enemies.forEach(e=>{
-if(!e.alive)return;
-let d=e.g.position.distanceTo(player.g.position);
-if(d<35){
-e.g.lookAt(player.g.position);
-if(d>5){
-let v=player.g.position.clone().sub(e.g.position).setY(0).normalize();
-e.g.position.addScaledVector(v,dt*1.5);
-}else{
-e.cd-=dt;
-if(e.cd<0){
-player.hp-=5;
-e.cd=1.2;
-}
-}
-}
-});
-
-cars.forEach(c=>{
-if(c!==player.car&&c.userData.traffic){
-c.position.x+=Math.sin(c.rotation.y)*dt*1.7;
-c.position.z+=Math.cos(c.rotation.y)*dt*1.7;
-if(Math.abs(c.position.x)>210||Math.abs(c.position.z)>210){
-c.rotation.y+=Math.PI;
-}
-}
-});
-
-day=(day+dt*.018)%24;
-let light=Math.max(.12,Math.sin((day-6)/12*Math.PI));
-sun.intensity=.25+light*2.2;
-
-$('hp').textContent=Math.max(0,Math.round(player.hp));
-$('cash').textContent=player.cash;
-$('time').textContent=String(Math.floor(day)).padStart(2,'0')+':'+String(Math.floor(day%1*60)).padStart(2,'0');
-$('mission').textContent=player.mission===0?'Visit the golden marker':player.mission===1?'Eliminate hostile guards':'Mission complete — free roam';
-
-tracers.forEach((b,i)=>{
-b.t-=dt;
-if(b.t<=0){
-scene.remove(b.line);
-tracers.splice(i,1);
-}
-});
-
-map();
-
-if(player.hp<=0){
-started=false;
-$('menu').style.display='grid';
-$('card').querySelector('h1').textContent='YOU WERE DOWNED';
-$('card').querySelector('p').textContent='Restart the page to try again.';
-}
-}
-
-renderer.render(scene,camera);
-}
-
 animate();
 
 addEventListener('resize',()=>{
-camera.aspect=innerWidth/innerHeight;
-camera.updateProjectionMatrix();
-renderer.setSize(innerWidth,innerHeight);
+ camera.aspect=innerWidth/innerHeight;
+ camera.updateProjectionMatrix();
+ renderer.setSize(innerWidth,innerHeight);
 });
-
 </script>
 </body>
 </html>
