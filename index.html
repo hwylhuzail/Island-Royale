@@ -1,0 +1,296 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Island Royale</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#101c24;color:white;font-family:Arial;text-align:center}
+header{padding:15px;background:#142b35}
+h1{color:#65e6a5;font-size:38px}
+canvas{display:block;margin:auto;background:#65a66a;max-width:100%;touch-action:none}
+button{padding:13px 22px;background:#159b67;color:white;border:0;border-radius:10px;font-weight:bold;margin:5px}
+#info{display:flex;justify-content:space-around;padding:10px}
+#menu{padding:15px}
+#controls{display:flex;justify-content:space-around;max-width:500px;margin:auto}
+#controls button{width:65px;height:55px;font-size:20px;touch-action:none}
+</style>
+</head>
+<body>
+
+<header>
+<h1>ISLAND ROYALE</h1>
+<p>BE THE LAST PLAYER STANDING</p>
+</header>
+
+<div id="menu">
+<h2>Choose your battle</h2>
+<button onclick="startGame('solo')">SOLO</button>
+<button onclick="startGame('squad')">SQUAD</button>
+</div>
+
+<div id="info">
+<span>❤️ HP: <b id="hp">100</b></span>
+<span>🔫 Ammo: <b id="ammo">30</b></span>
+<span>🏆 Kills: <b id="kills">0</b></span>
+</div>
+
+<canvas id="game" width="800" height="520"></canvas>
+
+<div>
+<button onclick="shoot()">FIRE 🔫</button>
+<button onclick="reload()">RELOAD</button>
+<button onclick="startGame(mode)">RESTART</button>
+</div>
+
+<div id="controls">
+<button id="up">⬆️</button>
+<button id="left">⬅️</button>
+<button id="down">⬇️</button>
+<button id="right">➡️</button>
+</div>
+
+<p id="status">Deploy to start your battle!</p>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+
+let player,enemies,bullets,mode="solo";
+let hp=100,ammo=30,kills=0;
+let running=false,zone=240,frame=0;
+let keys={};
+
+function startGame(selected){
+mode=selected;
+hp=100;
+ammo=30;
+kills=0;
+zone=240;
+frame=0;
+
+player={x:400,y:260,size:13,speed:3};
+enemies=[];
+bullets=[];
+
+let count=mode==="squad"?12:15;
+
+for(let i=0;i<count;i++){
+enemies.push({
+x:40+Math.random()*720,
+y:40+Math.random()*440,
+hp:100,
+size:12,
+speed:0.7+Math.random()
+});
+}
+
+running=true;
+document.getElementById("menu").style.display="none";
+document.getElementById("status").textContent="Survive and eliminate the enemies!";
+updateUI();
+}
+
+function updateUI(){
+document.getElementById("hp").textContent=Math.max(0,Math.floor(hp));
+document.getElementById("ammo").textContent=ammo;
+document.getElementById("kills").textContent=kills;
+}
+
+function shoot(){
+if(!running||ammo<=0)return;
+
+ammo--;
+
+let target=null;
+let nearest=Infinity;
+
+enemies.forEach(e=>{
+let d=Math.hypot(e.x-player.x,e.y-player.y);
+if(d<nearest){
+nearest=d;
+target=e;
+}
+});
+
+if(target && nearest<230){
+target.hp-=50;
+if(target.hp<=0){
+enemies=enemies.filter(e=>e!==target);
+kills++;
+}
+}
+
+updateUI();
+}
+
+function reload(){
+if(running)ammo=30;
+updateUI();
+}
+
+function movePlayer(){
+if(keys.up)player.y-=player.speed;
+if(keys.down)player.y+=player.speed;
+if(keys.left)player.x-=player.speed;
+if(keys.right)player.x+=player.speed;
+
+player.x=Math.max(15,Math.min(785,player.x));
+player.y=Math.max(15,Math.min(505,player.y));
+}
+
+function updateEnemies(){
+enemies.forEach(e=>{
+let dx=player.x-e.x;
+let dy=player.y-e.y;
+let d=Math.hypot(dx,dy);
+
+if(d>25){
+e.x+=(dx/d)*e.speed;
+e.y+=(dy/d)*e.speed;
+}else{
+hp-=0.12;
+}
+});
+}
+
+function drawIsland(){
+ctx.fillStyle="#5b9c54";
+ctx.fillRect(0,0,800,520);
+
+// Water and island decorations
+for(let i=0;i<35;i++){
+let x=(i*137)%800;
+let y=(i*91)%520;
+ctx.fillStyle="#347b42";
+ctx.beginPath();
+ctx.arc(x,y,12,0,Math.PI*2);
+ctx.fill();
+}
+
+// Buildings
+ctx.fillStyle="#bca77a";
+ctx.fillRect(100,100,75,60);
+ctx.fillRect(620,100,75,60);
+ctx.fillRect(600,360,90,65);
+ctx.fillRect(100,360,80,65);
+
+// Safe zone
+ctx.strokeStyle="#55e9ff";
+ctx.lineWidth=4;
+ctx.beginPath();
+ctx.arc(400,260,zone,0,Math.PI*2);
+ctx.stroke();
+}
+
+function drawPlayer(){
+ctx.fillStyle="#277cff";
+ctx.beginPath();
+ctx.arc(player.x,player.y,player.size,0,Math.PI*2);
+ctx.fill();
+
+ctx.fillStyle="white";
+ctx.fillText("YOU",player.x-13,player.y-20);
+}
+
+function drawEnemies(){
+enemies.forEach(e=>{
+ctx.fillStyle="#e74747";
+ctx.beginPath();
+ctx.arc(e.x,e.y,e.size,0,Math.PI*2);
+ctx.fill();
+
+ctx.fillStyle="white";
+ctx.fillRect(e.x-12,e.y-20,24,3);
+ctx.fillStyle="#42e66e";
+ctx.fillRect(e.x-12,e.y-20,24*(e.hp/100),3);
+});
+}
+
+function drawBullets(){
+bullets.forEach(b=>{
+ctx.fillStyle="yellow";
+ctx.beginPath();
+ctx.arc(b.x,b.y,4,0,Math.PI*2);
+ctx.fill();
+});
+}
+
+function endGame(won){
+running=false;
+document.getElementById("status").textContent=
+won?"🏆 VICTORY ROYALE!":"💀 YOU WERE ELIMINATED";
+document.getElementById("menu").style.display="block";
+updateUI();
+}
+
+function gameLoop(){
+ctx.clearRect(0,0,800,520);
+drawIsland();
+
+if(running){
+frame++;
+movePlayer();
+updateEnemies();
+
+if(frame%600===0)zone=Math.max(55,zone-25);
+
+if(Math.hypot(player.x-400,player.y-260)>zone){
+hp-=0.15;
+}
+
+if(hp<=0)endGame(false);
+if(enemies.length===0)endGame(true);
+
+drawPlayer();
+drawEnemies();
+drawBullets();
+updateUI();
+}else{
+ctx.fillStyle="white";
+ctx.font="25px Arial";
+ctx.fillText("ISLAND ROYALE",285,250);
+}
+requestAnimationFrame(gameLoop);
+}
+
+function bind(id,key){
+let el=document.getElementById(id);
+el.addEventListener("pointerdown",e=>{
+e.preventDefault();
+keys[key]=true;
+});
+["pointerup","pointercancel","pointerleave"].forEach(ev=>{
+el.addEventListener(ev,()=>keys[key]=false);
+});
+}
+
+bind("up","up");
+bind("down","down");
+bind("left","left");
+bind("right","right");
+
+document.addEventListener("keydown",e=>{
+let k=e.key.toLowerCase();
+if(k==="w"||k==="arrowup")keys.up=true;
+if(k==="s"||k==="arrowdown")keys.down=true;
+if(k==="a"||k==="arrowleft")keys.left=true;
+if(k==="d"||k==="arrowright")keys.right=true;
+if(k===" ")shoot();
+if(k==="r")reload();
+});
+
+document.addEventListener("keyup",e=>{
+let k=e.key.toLowerCase();
+if(k==="w"||k==="arrowup")keys.up=false;
+if(k==="s"||k==="arrowdown")keys.down=false;
+if(k==="a"||k==="arrowleft")keys.left=false;
+if(k==="d"||k==="arrowright")keys.right=false;
+});
+
+gameLoop();
+</script>
+</body>
+</html>
